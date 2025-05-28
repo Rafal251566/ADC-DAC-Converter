@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35825.156 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telekomuna 4", "Telekomuna 4\Telekomuna 4.csproj", "{FCB116CF-2EE6-4731-AA04-BB590B88524D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FCB116CF-2EE6-4731-AA04-BB590B88524D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCB116CF-2EE6-4731-AA04-BB590B88524D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCB116CF-2EE6-4731-AA04-BB590B88524D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCB116CF-2EE6-4731-AA04-BB590B88524D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AAB3AA10-8212-49F4-B84B-F7458D9B873E}
+	EndGlobalSection
+EndGlobal

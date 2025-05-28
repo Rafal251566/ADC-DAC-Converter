@@ -148,7 +148,7 @@ public class AdcConverter
                 byte quantizedSample = (byte)(normalizedSample * ((1 << 2) - 1)); 
 
                 int byteIndex = i / 4;
-                int samplePositionInByte = i % 4; // 0, 1, 2, 3
+                int samplePositionInByte = i % 4;
 
                 outputBuffer[byteIndex] |= (byte)(quantizedSample << (samplePositionInByte * 2));
             }

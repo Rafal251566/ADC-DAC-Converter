@@ -18,100 +18,21 @@ class Program
         do
         {
             Console.WriteLine("\nDostępne opcje:");
-            Console.WriteLine("1. Nagrywanie dźwięku (A/C)");
+            Console.WriteLine("1. Nagrywanie porównawcze (wiele formatów z jednego nagrania)");
             Console.WriteLine("2. Odtwarzanie dźwięku (C/A)");
-            Console.WriteLine("3. Nagrywanie porównawcze (wiele formatów z jednego nagrania)");
-            Console.WriteLine("4. Wyjście");
+            Console.WriteLine("3. Wyjście");
 
             Console.Write("\nWybierz opcję: ");
             choice = Console.ReadLine();
 
             switch (choice)
             {
-                case "1": PerformRecording(); break;
+                case "1": PerformComparativeRecording(); break;
                 case "2": PerformPlayback(); break;
-                case "3": PerformComparativeRecording(); break;
-                case "4": Console.WriteLine("Do zobaczenia!"); break;
+                case "3": Console.WriteLine("Do zobaczenia!"); break;
                 default: Console.WriteLine("Niepoprawny wybór, spróbuj ponownie."); break;
             }
         } while (choice != "4");
-    }
-
-    static void PerformRecording()
-    {
-        Console.WriteLine("\n--- NAGRYWANIE DŹWIĘKU ---");
-
-        var deviceEnum = new MMDeviceEnumerator();
-        var devices = deviceEnum.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-
-        if (devices.Count == 0)
-        {
-            Console.WriteLine("Brak dostępnych urządzeń wejściowych audio. Upewnij się, że mikrofon jest podłączony i aktywny.");
-            return;
-        }
-
-        Console.WriteLine("Dostępne urządzenia wejściowe:");
-        int deviceIndex = 0;
-        foreach (var device in devices)
-        {
-            Console.WriteLine($"{deviceIndex}: {device.FriendlyName}");
-            deviceIndex++;
-        }
-
-        int selectedDeviceIndex = 0;
-        Console.Write($"Wybierz numer urządzenia (domyślnie 0 - {devices[0].FriendlyName}): ");
-        if (!int.TryParse(Console.ReadLine(), out selectedDeviceIndex) || selectedDeviceIndex < 0 || selectedDeviceIndex >= devices.Count)
-        {
-            selectedDeviceIndex = 0;
-        }
-
-        Console.Write("Podaj nazwę pliku wyjściowego WAV (np. nagranie.wav): ");
-        string filePath = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            filePath = "nagranie.wav";
-        }
-
-        Console.Write("Podaj częstotliwość próbkowania (np. 44100): ");
-        int sampleRate;
-        if (!int.TryParse(Console.ReadLine(), out sampleRate) || sampleRate <= 0) sampleRate = 44100;
-
-        Console.Write("Podaj liczbę kanałów (1=mono, 2=stereo): ");
-        int channels;
-        if (!int.TryParse(Console.ReadLine(), out channels) || (channels != 1 && channels != 2)) channels = 1;
-
-        Console.Write("Podaj docelową głębię bitową (2, 4, 8, 16, 24): "); 
-        int bitDepth;
-        if (!int.TryParse(Console.ReadLine(), out bitDepth)) bitDepth = 16;
-
-        List<int> supportedBitDepths = new List<int> { 2, 4, 8, 16, 24 };
-        if (!supportedBitDepths.Contains(bitDepth))
-        {
-            Console.WriteLine("Wybrano nieobsługiwaną głębię bitową. Używam domyślnej 16 bitów.");
-            bitDepth = 16;
-        }
-        else if (bitDepth < 8)
-        {
-            Console.WriteLine($"\n--- WAŻNE: Głębia bitowa {bitDepth}-bitowa jest niestandardowa dla formatu WAV PCM. ---");
-            Console.WriteLine("Pliki takie mogą nie być odtwarzane poprawnie przez standardowe odtwarzacze.");
-            Console.WriteLine("Do odtwarzania tych plików użyj opcji '2. Odtwarzanie dźwięku' w tym programie.");
-        }
-
-
-        var recorder = new AdcConverter();
-        try
-        {
-            recorder.StartRecording(filePath, sampleRate, bitDepth, channels, selectedDeviceIndex, true);
-            Console.WriteLine("Nagrywanie... Wciśnij dowolny klawisz, by zakończyć.");
-            Console.ReadKey();
-            recorder.StopRecording();
-            Console.WriteLine($"Nagrywanie zakończone. Plik zapisany jako: {filePath}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"\nWystąpił błąd podczas nagrywania: {ex.Message}");
-            Console.WriteLine("Upewnij się, że wybrane urządzenie jest dostępne i program ma uprawnienia dostępu do mikrofonu.");
-        }
     }
 
     static void PerformComparativeRecording()

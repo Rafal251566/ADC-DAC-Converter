@@ -42,7 +42,6 @@ public class DacConverter : IDisposable
             return;
         }
 
-        //odtwarzacz z NAudio
         if (fmt.BitsPerSample == 8 || fmt.BitsPerSample == 16 || fmt.BitsPerSample == 24 || fmt.BitsPerSample == 32)
         {
             Console.WriteLine($"Odtwarzam plik {fmt.BitsPerSample}-bitowy za pomocą standardowego AudioFileReader.");
@@ -50,7 +49,7 @@ public class DacConverter : IDisposable
             waveOut = new WaveOutEvent();
             waveOut.Init(audioFileReader);
         }
-        else //niestandardowy odtwarzacz
+        else
         {
             Console.WriteLine($"Odtwarzam niestandardowy {fmt.BitsPerSample}-bitowy plik za pomocą VariableBitWaveProvider.");
             variableBitProvider = new VariableBitWaveProvider(filePath, fmt.SampleRate, fmt.Channels, fmt.BitsPerSample);
@@ -67,48 +66,94 @@ public class DacConverter : IDisposable
         Dispose();
     }
 
-    private WaveFormat GetWaveFormat(string path)
+    public WaveFormat GetWaveFormat(string filePath)
     {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"Plik nie istnieje: {filePath}");
+            return null;
+        }
+
         try
         {
-            using var br = new BinaryReader(File.OpenRead(path));
-            br.ReadBytes(12);
-
-            while (br.BaseStream.Position < br.BaseStream.Length)
+            using (var stream = File.OpenRead(filePath))
+            using (var reader = new BinaryReader(stream))
             {
-                string chunkId = new string(br.ReadChars(4));
-                int chunkSize = br.ReadInt32();
+                string riffId = new string(reader.ReadChars(4));
+                int fileSize = reader.ReadInt32();
+                string waveId = new string(reader.ReadChars(4)); 
 
-                if (chunkId == "fmt ")
+                if (riffId != "RIFF" || waveId != "WAVE")
                 {
-                    short audioFormat = br.ReadInt16();
-                    if (audioFormat != 1)
+                    Console.WriteLine($"Nieprawidłowy nagłówek RIFF/WAVE w pliku: {filePath}");
+                    return null;
+                }
+
+                string chunkId;
+                int chunkSize;
+                short audioFormat = 0;
+                short numChannels = 0;
+                int sampleRate = 0;
+                int byteRate = 0;
+                short blockAlign = 0;
+                short bitsPerSample = 0;
+
+                while (stream.Position < stream.Length)
+                {
+                    chunkId = new string(reader.ReadChars(4));
+                    chunkSize = reader.ReadInt32();
+
+                    if (chunkId == "fmt ")
                     {
-                        Console.WriteLine($"\nOstrzeżenie: Plik nie jest w formacie PCM (AudioFormat={audioFormat}). Odtwarzanie może być nieprawidłowe.");
+                        audioFormat = reader.ReadInt16();
+                        numChannels = reader.ReadInt16();
+                        sampleRate = reader.ReadInt32();
+                        byteRate = reader.ReadInt32();
+                        blockAlign = reader.ReadInt16();
+                        bitsPerSample = reader.ReadInt16();
+
+                        if (chunkSize > 16)
+                        {
+                            reader.ReadBytes(chunkSize - 16);
+                        }
                     }
-                    short channels = br.ReadInt16();
-                    int sampleRate = br.ReadInt32();
-                    br.ReadInt32();
-                    br.ReadInt16();
-                    short bits = br.ReadInt16();
-                    return new WaveFormat(sampleRate, bits, channels);
+                    else if (chunkId == "data")
+                    {
+                        stream.Seek(chunkSize, SeekOrigin.Current); 
+                    }
+                    else
+                    {
+                        stream.Seek(chunkSize, SeekOrigin.Current);
+                    }
+
+                    if (chunkSize % 2 != 0 && stream.Position < stream.Length)
+                    {
+                        stream.ReadByte();
+                    }
+
+                    if (audioFormat != 0 && sampleRate != 0) 
+                        break;
+                }
+
+                if (audioFormat == 1)
+                {
+                    return new WaveFormat(sampleRate, bitsPerSample, numChannels);
                 }
                 else
                 {
-                    br.BaseStream.Seek(chunkSize, SeekOrigin.Current);
+                    Console.WriteLine($"Nieobsługiwany format audio (nie PCM): {audioFormat} w pliku: {filePath}");
+                    return null;
                 }
             }
         }
-        catch (EndOfStreamException)
-        {
-            Console.WriteLine($"\nBłąd: Niepełny lub uszkodzony plik WAV: {path}");
-        }
         catch (Exception ex)
         {
-            Console.WriteLine($"\nBłąd podczas odczytu nagłówka WAV dla {path}: {ex.Message}");
+            Console.WriteLine($"Błąd podczas odczytu formatu WAV z pliku {filePath}: {ex.Message}");
+            return null;
         }
-        return null;
     }
+
+
 
     public void Dispose()
     {

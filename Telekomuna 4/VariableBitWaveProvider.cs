@@ -7,18 +7,18 @@ public class VariableBitWaveProvider : IWaveProvider, IDisposable
 {
     private readonly WaveFormat format;
     private readonly FileStream stream;
-    private readonly int bitDepth;
+    private readonly int actualBitDepth;
     private long dataOffset;
     private long dataLength;
     private long currentDataPosition;
 
-    public TimeSpan CurrentTime => TimeSpan.FromSeconds((double)currentDataPosition / (format.SampleRate * format.Channels * ((bitDepth + 7) / 8)));
-    public TimeSpan TotalTime => TimeSpan.FromSeconds((double)dataLength / (format.SampleRate * format.Channels * ((bitDepth + 7) / 8)));
+    public TimeSpan CurrentTime => TimeSpan.FromSeconds((double)currentDataPosition / (format.SampleRate * format.Channels * ((actualBitDepth + 7) / 8)));
+    public TimeSpan TotalTime => TimeSpan.FromSeconds((double)dataLength / (format.SampleRate * format.Channels * ((actualBitDepth + 7) / 8)));
 
 
     public VariableBitWaveProvider(string path, int rate, int channels, int bits)
     {
-        bitDepth = bits;
+        actualBitDepth = bits;
         format = new WaveFormat(rate, 8, channels);
         stream = new FileStream(path, FileMode.Open, FileAccess.Read);
         using var reader = new BinaryReader(stream, Encoding.ASCII, true);
@@ -35,7 +35,7 @@ public class VariableBitWaveProvider : IWaveProvider, IDisposable
                 dataLength = chunkSize;
                 break;
             }
-            stream.Seek(chunkSize + (chunkSize % 2), SeekOrigin.Current);
+            stream.Seek(chunkSize, SeekOrigin.Current);
         }
         stream.Seek(dataOffset, SeekOrigin.Begin);
         currentDataPosition = 0;
@@ -46,28 +46,33 @@ public class VariableBitWaveProvider : IWaveProvider, IDisposable
     public int Read(byte[] buffer, int offset, int count)
     {
         int bytesRead = 0;
-        long totalBitsToRead = (long)count * bitDepth;
-        long totalBytesToReadFromStream = (totalBitsToRead + 7) / 8;
+        int samplesToRead = count;
 
-        byte[] rawInputBytes = new byte[totalBytesToReadFromStream];
+        long totalInputBitsToRead = (long)count * actualBitDepth;
+        int numInputBytesToRead = (int)((totalInputBitsToRead + 7) / 8);
+
+        byte[] rawInputBytes = new byte[numInputBytesToRead];
         int actualBytesReadFromStream = stream.Read(rawInputBytes, 0, rawInputBytes.Length);
 
         if (actualBytesReadFromStream == 0) return 0;
 
         currentDataPosition += actualBytesReadFromStream;
 
-        long bitsReadFromInput = 0;
-        int outputBufferIndex = offset;
+        long bitsProcessedInInput = 0;
 
-        int maxValInput = (1 << bitDepth) - 1;
+        float maxValInput = (float)((1 << actualBitDepth) - 1);
 
-
-        while (bitsReadFromInput + bitDepth <= actualBytesReadFromStream * 8 && outputBufferIndex < offset + count)
+        for (int i = 0; i < samplesToRead; i++)
         {
-            int currentSample = 0;
-            for (int bit = 0; bit < bitDepth; bit++)
+            if (bitsProcessedInInput + actualBitDepth > actualBytesReadFromStream * 8)
             {
-                long globalBitIndex = bitsReadFromInput + bit;
+                break;
+            }
+
+            int currentSampleValue = 0;
+            for (int bit = 0; bit < actualBitDepth; bit++)
+            {
+                long globalBitIndex = bitsProcessedInInput + bit;
                 int byteIndex = (int)(globalBitIndex / 8);
                 int bitInByte = (int)(globalBitIndex % 8);
 
@@ -75,7 +80,7 @@ public class VariableBitWaveProvider : IWaveProvider, IDisposable
                 {
                     if (((rawInputBytes[byteIndex] >> bitInByte) & 1) == 1)
                     {
-                        currentSample |= (1 << bit);
+                        currentSampleValue |= (1 << bit);
                     }
                 }
                 else
@@ -84,14 +89,13 @@ public class VariableBitWaveProvider : IWaveProvider, IDisposable
                 }
             }
 
-            float normalizedSample = (float)currentSample / maxValInput;
+            float normalizedSample = (maxValInput > 0) ? (float)currentSampleValue / maxValInput : 0f;
+            buffer[offset + bytesRead] = (byte)(normalizedSample * 255);
 
-            buffer[outputBufferIndex] = (byte)(normalizedSample * 255);
-
-            bitsReadFromInput += bitDepth;
-            outputBufferIndex++;
+            bitsProcessedInInput += actualBitDepth;
             bytesRead++;
         }
+
         return bytesRead;
     }
 

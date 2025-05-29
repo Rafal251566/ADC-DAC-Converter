@@ -32,7 +32,7 @@ class Program
                 case "3": Console.WriteLine("Do zobaczenia!"); break;
                 default: Console.WriteLine("Niepoprawny wybór, spróbuj ponownie."); break;
             }
-        } while (choice != "4");
+        } while (choice != "3");
     }
 
     static void PerformComparativeRecording()

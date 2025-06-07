@@ -70,7 +70,7 @@ class Program
             baseFileName = "porownanie";
         }
 
-        var sampleRates = new int[] { 2000, 4000, 8000, 16000, 22050, 44100 };
+        var sampleRates = new int[] { 3000, 4000, 8000, 16000, 22050, 44100 };
         var bitDepths = new int[] { 2, 4, 8, 16, 24 }; 
 
         int baseChannels = 1;
